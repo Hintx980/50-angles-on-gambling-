@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Master Entry</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,700;0,9..144,900;1,9..144,300;1,9..144,400;1,9..144,700;1,9..144,900&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --chroma-x: 0px;
+    --chroma-y: 0px;
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: #000;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  #stage-wrapper {
+    position: relative;
+    width: 100vw;
+    height: 56.25vw; /* 16:9 Aspect Ratio */
+    max-height: 100vh;
+    max-width: 177.78vh;
+  }
+
+  #stage {
+    position: absolute;
+    inset: 0;
+    width: 1920px;
+    height: 1080px;
+    transform-origin: top left;
+    overflow: hidden;
+    background: #0B0B0C;
+  }
+
+  /* ─── LAYERED FILM GRAIN OVERLAY ─── */
+  .grain-overlay {
+    position: absolute; inset: 0; z-index: 999;
+    pointer-events: none; opacity: 0.05;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    animation: grainShimmer 0.15s steps(4) infinite;
+  }
+  @keyframes grainShimmer {
+    0% { transform: translate(0,0); } 50% { transform: translate(0.5%, -0.5%); } 100% { transform: translate(0,0); }
+  }
+
+  /* ─── GLOBAL CHROMATIC CONFIG ─── */
+  .glitch-text {
+    text-shadow: 
+      calc(var(--chroma-x) * -1) var(--chroma-y) 0px rgba(235, 77, 75, 0.5),
+      var(--chroma-x) calc(var(--chroma-y) * -1) 0px rgba(34, 166, 241, 0.5);
+  }
+
+  /* ─── PROGRESS BAR ─── */
+  #progress-track {
+    position: absolute; bottom: 0; left: 0; width: 100%; height: 3px;
+    background: rgba(255,255,255,0.06); z-index: 900;
+  }
+  #progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #C0392B, #C9A84C, #2ECC71); transition: none; }
+
+  /* ─── PERSISTENT HUD ─── */
+  #hud-tr { position: absolute; top: 42px; right: 52px; font-size: 15px; font-weight: 400; letter-spacing: 0.12em; color: rgba(255,255,255,0.28); z-index: 800; text-align: right; transition: color 0.2s ease; }
+  .hud-dim { color: rgba(255,255,255,0.14); transition: color 0.2s ease; }
+
+  /* Body states dynamically overriding metrics when inverted */
+  body.inverted-hud #hud-tr { color: rgba(0,0,0,0.4); }
+  body.inverted-hud .hud-dim { color: rgba(0,0,0,0.18); }
+
+  /* ─── SCENE BASE ─── */
+  .scene { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: none; overflow: hidden; }
+  .scene.active { opacity: 1; pointer-events: auto; }
+
+  /* ═══════════════════════════════════════════
+     SCENE 1 — THE HOOK
+  ═══════════════════════════════════════════ */
+  #s1 { background: #0B0B0C; flex-direction: column; align-items: flex-start; padding: 0 160px; }
+  .s1-eyebrow { font-size: 18px; font-weight: 400; letter-spacing: 0.28em; color: #C0392B; text-transform: uppercase; margin-bottom: 48px; opacity: 0; }
+  .s1-line1, .s1-line2 { font-family: 'Fraunces', serif; font-style: italic; font-weight: 900; font-size: 128px; line-height: 1.0; color: #F5F0EB; letter-spacing: -0.04em; opacity: 0; }
+  .s1-accent { color: #C0392B; display: inline-block; position: relative; }
+  
+  #s1.active .s1-accent { animation: keywordTremor 3s 1.5s infinite ease-in-out; }
+  @keyframes keywordTremor {
+    0%, 92%, 100% { transform: skew(0deg) scale(1); filter: blur(0); }
+    93% { transform: skew(-4deg) scale(1.02); filter: drop-shadow(-2px 0 red); }
+    95% { transform: skew(5deg) scale(0.98); filter: drop-shadow(2px 0 blue) blur(0.5px); }
+    97% { transform: skew(0deg) scale(1); filter: blur(0); }
+  }
+
+  .s1-rule { width: 0; height: 2px; background: #C0392B; margin-top: 52px; opacity: 0; }
+  .s1-sub { font-size: 22px; font-weight: 300; letter-spacing: 0.06em; color: rgba(245,240,235,0.5); margin-top: 36px; opacity: 0; max-width: 900px; }
+
+  #s1.active .s1-eyebrow { animation: fadeUp 0.5s 0.1s cubic-bezier(.22,1,.36,1) forwards; }
+  #s1.active .s1-line1   { animation: fadeUpTrack 5s 0.3s cubic-bezier(.22,1,.36,1) forwards; }
+  #s1.active .s1-line2   { animation: fadeUpTrack 5s 0.55s cubic-bezier(.22,1,.36,1) forwards; }
+  #s1.active .s1-rule    { animation: expandW 0.7s 0.9s cubic-bezier(.22,1,.36,1) forwards; }
+  #s1.active .s1-sub     { animation: fadeUp 0.5s 1.1s cubic-bezier(.22,1,.36,1) forwards; }
+
+  /* ═══════════════════════════════════════════
+     SCENE 2 — THE CORE RULE
+  ═══════════════════════════════════════════ */
+  #s2 { background: #111110; flex-direction: column; align-items: center; text-align: center; }
+  .s2-label { font-size: 14px; font-weight: 500; letter-spacing: 0.34em; color: #C9A84C; text-transform: uppercase; margin-bottom: 56px; opacity: 0; }
+  .s2-line, .s2-line2 { font-family: 'Fraunces', serif; font-style: italic; font-weight: 700; font-size: 100px; line-height: 1.05; color: #EDE8DE; letter-spacing: -0.03em; opacity: 0; }
+  
+  .s2-gold {
+    background: linear-gradient(120deg, #C9A84C 30%, #fff 50%, #C9A84C 70%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 900;
+  }
+  #s2.active .s2-gold { animation: goldShimmer 4s infinite linear; }
+  @keyframes goldShimmer { 0% { background-position: 200% center; } 100% { background-position: -200% center; } }
+
+  .s2-divider { width: 0; height: 1px; background: rgba(201,168,76,0.4); margin: 44px 0; opacity: 0; }
+  .s2-footnote { font-size: 16px; font-weight: 300; letter-spacing: 0.16em; color: rgba(201,168,76,0.45); margin-top: 48px; opacity: 0; text-transform: uppercase; }
+
+  #s2.active .s2-label    { animation: fadeUp 0.45s 0.1s cubic-bezier(.22,1,.36,1) forwards; }
+  #s2.active .s2-line     { animation: fadeUpTrack 5s 0.3s cubic-bezier(.22,1,.36,1) forwards; }
+  #s2.active .s2-divider  { animation: expandW 0.6s 0.65s cubic-bezier(.22,1,.36,1) forwards; }
+  #s2.active .s2-line2    { animation: fadeUpTrack 5s 0.75s cubic-bezier(.22,1,.36,1) forwards; }
+  #s2.active .s2-footnote { animation: fadeIn 0.4s 1.3s forwards; }
+
+  /* ─── SCENE 3 — THE TWIST ─── */
+  #s3 { background: #0D0D0D; flex-direction: column; align-items: flex-start; padding: 0 160px; }
+  .s3-counter { font-size: 14px; font-weight: 500; letter-spacing: 0.3em; color: rgba(255,255,255,0.2); text-transform: uppercase; margin-bottom: 52px; opacity: 0; }
+  .s3-line1 { font-family: 'Fraunces', serif; font-style: italic; font-weight: 900; font-size: 110px; line-height: 1.0; color: rgba(245,240,235,0.55); letter-spacing: -0.03em; opacity: 0; }
+  .s3-ellipsis { color: rgba(245,240,235,0.25); }
+  .s3-pivot { display: flex; align-items: baseline; gap: 28px; margin-top: 12px; }
+  .s3-until { font-family: 'Fraunces', serif; font-style: italic; font-weight: 900; font-size: 110px; line-height: 1.0; color: rgba(245,240,235,0.55); letter-spacing: -0.03em; opacity: 0; }
+  .s3-edge { font-family: 'Fraunces', serif; font-style: italic; font-weight: 900; font-size: 110px; line-height: 1.0; color: #2ECC71; letter-spacing: 0.02em; text-transform: uppercase; opacity: 0; }
+  
+  #s3.active .s3-edge { animation: flashIn 0.3s 1.0s forwards, strikeSlice 0.4s 1.15s cubic-bezier(0.19, 1, 0.22, 1) forwards; }
+  @keyframes strikeSlice { 0% { clip-path: inset(0 100% 0 0); transform: translateX(-15px); } 100% { clip-path: inset(0 0 0 0); transform: translateX(0); } }
+  .s3-bar { width: 0; height: 3px; background: #2ECC71; margin-top: 50px; opacity: 0; box-shadow: 0 0 20px rgba(46,204,113,0.3); }
+
+  #s3.active .s3-counter { animation: fadeUp 0.4s 0.1s forwards; }
+  #s3.active .s3-line1   { animation: fadeUpTrack 5s 0.25s cubic-bezier(.22,1,.36,1) forwards; }
+  #s3.active .s3-until   { animation: fadeUp 0.5s 0.55s cubic-bezier(.22,1,.36,1) forwards; }
+  #s3.active .s3-bar     { animation: expandW 0.55s 1.3s cubic-bezier(.22,1,.36,1) forwards; }
+
+  /* ═══════════════════════════════════════════
+     SCENE 4 — THE EXPLOITATION
+  ═══════════════════════════════════════════ */
+  #s4 { background: #0A0A0A; display: grid; grid-template-columns: 1fr 1fr; padding: 0; align-items: stretch; }
+  .s4-left { padding: 120px 80px 120px 160px; display: flex; flex-direction: column; justify-content: center; border-right: 1px solid rgba(255,255,255,0.06); }
+  .s4-tag { font-size: 13px; font-weight: 500; letter-spacing: 0.3em; color: rgba(255,255,255,0.2); text-transform: uppercase; margin-bottom: 52px; opacity: 0; }
+  .s4-headline, .s4-hl2 { font-family: 'Fraunces', serif; font-style: italic; font-weight: 900; font-size: 88px; line-height: 1.0; color: #F5F0EB; letter-spacing: -0.03em; opacity: 0; }
+  .s4-hl2 { margin-top: 4px; }
+  .s4-arb { color: #2ECC71; }
+  .s4-sub { font-size: 18px; font-weight: 300; color: rgba(245,240,235,0.35); line-height: 1.6; margin-top: 40px; opacity: 0; letter-spacing: 0.02em; }
+
+  .s4-right { padding: 80px 100px; display: flex; flex-direction: column; justify-content: center; position: relative; }
+  .ticker-header { font-size: 13px; font-weight: 700; letter-spacing: 0.25em; color: rgba(255,255,255,0.4); text-transform: uppercase; margin-bottom: 36px; }
+  .ticker-grid { display: flex; flex-direction: column; opacity: 0; }
+  .ticker-row { display: grid; grid-template-columns: 240px 100px 1fr; align-items: center; padding: 18px 12px; margin: 0 -12px; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 16px; position: relative; transition: background 0.15s ease; }
+  .ticker-row.row-active-flash { background: rgba(46, 204, 113, 0.05); }
+  .t-market { color: rgba(245,240,235,0.8); font-weight: 500; letter-spacing: 0.05em; }
+  .t-status { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; padding-left: 4px; }
+  .status-live { color: #3498DB; }
+  .status-delay { color: #E67E22; }
+  .status-arb { color: #2ECC71; }
+  .t-val { font-weight: 700; text-align: right; font-size: 18px; letter-spacing: 0.05em; color: #2ECC71; }
+  .t-flash { animation: valFlash 0.18s cubic-bezier(.22,1,.36,1); }
+  .ticker-total { margin-top: 24px; padding-top: 20px; border-top: 2px solid #2ECC71; display: flex; justify-content: space-between; align-items: center; opacity: 0; }
+  .tt-label { font-size: 14px; font-weight: 700; color: #F5F0EB; letter-spacing: 0.25em; text-transform: uppercase; }
+  .tt-val { font-size: 24px; font-weight: 700; color: #2ECC71; letter-spacing: 0.05em; }
+
+  #s4.active .s4-tag       { animation: fadeUp 0.4s 0.1s forwards; }
+  #s4.active .s4-headline  { animation: fadeUpTrack 5s 0.25s cubic-bezier(.22,1,.36,1) forwards; }
+  #s4.active .s4-hl2       { animation: fadeUp 0.5s 0.45s cubic-bezier(.22,1,.36,1) forwards; }
+  #s4.active .s4-sub       { animation: fadeUp 0.45s 0.85s forwards; }
+  #s4.active .ticker-grid  { animation: fadeUp 0.5s 0.4s cubic-bezier(.22,1,.36,1) forwards; }
+  #s4.active .ticker-total { animation: fadeIn 0.4s 1.0s forwards; }
+
+  /* ═══════════════════════════════════════════
+     SCENE 5 — THE EQUATION
+  ═══════════════════════════════════════════ */
+  #s5 { background: #FBFBF8; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  
+  #s5.active { animation: shockInversionFlash 0.35s cubic-bezier(0.06, 0.97, 0.2, 1) forwards; }
+  @keyframes shockInversionFlash {
+    0% { background: #000000; filter: invert(0); }
+    15% { background: #ffffff; filter: invert(1); }
+    100% { background: #FBFBF8; filter: invert(0); }
+  }
+
+  .s5-eq-label { font-size: 14px; font-weight: 700; letter-spacing: 0.35em; color: #161514; text-transform: uppercase; margin-bottom: 56px; opacity: 0; }
+  
+  .s5-rule-top, .s5-rule-bot { width: 0; height: 2px; background: #161514; opacity: 0; }
+  .s5-rule-top { margin-bottom: 60px; }
+  .s5-rule-bot { margin-top: 60px; }
+
+  #s5.active .s5-rule-top { animation: expandWDark 0.6s 0.2s cubic-bezier(.22,1,.36,1) forwards, clampTightTop 0.5s 2.8s cubic-bezier(0.77, 0, 0.175, 1) forwards; }
+  #s5.active .s5-rule-bot { animation: expandWDark 0.6s 0.2s cubic-bezier(.22,1,.36,1) forwards, clampTightBot 0.5s 2.8s cubic-bezier(0.77, 0, 0.175, 1) forwards; }
+
+  @keyframes expandWDark { from { opacity: 1; width: 0; } to { opacity: 1; width: 640px; } }
+  @keyframes clampTightTop { from { margin-bottom: 60px; } to { margin-bottom: 36px; } }
+  @keyframes clampTightBot { from { margin-top: 60px; } to { margin-top: 36px; } }
+
+  .s5-content-stack { display: flex; flex-direction: column; gap: 8px; align-items: center; }
+  .s5-txt-line { font-family: 'Fraunces', serif; font-style: italic; font-weight: 900; font-size: 114px; line-height: 0.95; color: #161514; letter-spacing: -0.04em; opacity: 0; }
+
+  #s5.active .l-1 { animation: starkLineIn 0.45s 0.5s cubic-bezier(0.19, 1, 0.22, 1) forwards; }
+  #s5.active .l-2 { animation: starkLineIn 0.45s 0.75s cubic-bezier(0.19, 1, 0.22, 1) forwards; }
+  #s5.active .l-3 { animation: starkLineIn 0.45s 1.0s cubic-bezier(0.19, 1, 0.22, 1) forwards; }
+
+  @keyframes starkLineIn {
+    0% { opacity: 0; transform: translateY(30px) scale(0.97); filter: blur(4px); }
+    100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  }
+
+  .s5-sub { font-size: 16px; font-weight: 500; letter-spacing: 0.25em; color: rgba(22,21,20,0.4); margin-top: 48px; opacity: 0; text-transform: uppercase; }
+
+  #s5.active .s5-eq-label { animation: fadeIn 0.4s 0.4s forwards; }
+  #s5.active .s5-sub      { animation: fadeIn 0.4s 1.4s forwards; }
+
+  /* ═══════════════════════════════════════════
+     SCENE 6 — OUTRO (Wiped Master Challenge String)
+  ═══════════════════════════════════════════ */
+  #s6 { background: #0B0B0C; flex-direction: column; align-items: flex-start; padding: 0 160px; }
+  .s6-line1, .s6-line2 { font-family: 'Fraunces', serif; font-style: italic; font-weight: 900; font-size: 120px; line-height: 1.0; color: #F5F0EB; letter-spacing: -0.03em; opacity: 0; }
+  .s6-line1 { margin-top: 240px; }
+  .s6-line2 { margin-top: 6px; }
+  .s6-yield { color: #C9A84C; }
+  .s6-hash { font-size: 20px; font-weight: 500; letter-spacing: 0.15em; color: rgba(245,240,235,0.45); margin-top: 64px; opacity: 0; text-transform: uppercase; }
+
+  .s6-glitch { display: inline-block; position: relative; color: #F5F0EB; text-transform: uppercase; }
+  #s6.active .s6-glitch { animation: coreGlitch 2.2s steps(2) infinite; }
+
+  @keyframes coreGlitch {
+    0%, 88%, 94%, 100% { transform: translate(0,0) skew(0deg); filter: blur(0); text-shadow: none; }
+    89% { clip-path: inset(40% 0 20% 0); transform: translate(-12px, 4px) skew(-6deg); text-shadow: -3px 0 #2ECC71, 3px 0 #C0392B; }
+    91% { clip-path: inset(10% 0 75% 0); transform: translate(14px, -6px) skew(12deg); text-shadow: 4px 0 #3498DB, -4px 0 #C9A84C; }
+    93% { clip-path: inset(70% 0 5% 0); transform: translate(-6px, -2px) skew(-3deg); text-shadow: -2px 0 #fff, 2px 0 #000; }
+  }
+
+  .s6-hud { position: absolute; bottom: 60px; right: 52px; width: 360px; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.06); padding: 24px; opacity: 0; }
+  .hud-terminal-header { font-size: 11px; font-weight: 700; letter-spacing: 0.2em; color: #C9A84C; text-transform: uppercase; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
+  .hud-terminal-status { width: 6px; height: 6px; background: #2ECC71; border-radius: 50%; box-shadow: 0 0 8px #2ECC71; }
+  .hud-log-box { display: flex; flex-direction: column; gap: 8px; font-size: 12px; letter-spacing: 0.04em; color: rgba(255,255,255,0.4); height: 105px; overflow: hidden; }
+  .hud-log-line { display: flex; gap: 10px; line-height: 1.3; }
+  .hl-ts { color: rgba(255,255,255,0.15); }
+  .hl-tag { color: #C9A84C; font-weight: 500; }
+  .hl-txt { color: rgba(245,240,235,0.55); position: relative; }
+  .hl-txt::after { content: '_'; animation: termCursor 0.6s infinite alternate; color: #2ECC71; margin-left: 2px; }
+  .hud-log-line:not(:last-child) .hl-txt::after { display: none; }
+  @keyframes termCursor { 0% { opacity: 0; } 100% { opacity: 1; } }
+  .hl-success { color: #2ECC71; font-weight: 700; }
+
+  #s6.active .s6-line1 { animation: fadeUpTrack 5s 0.15s cubic-bezier(.22,1,.36,1) forwards; }
+  #s6.active .s6-line2 { animation: fadeUp 0.55s 0.4s cubic-bezier(.22,1,.36,1) forwards; }
+  #s6.active .s6-hash  { animation: fadeUp 0.45s 0.8s forwards; }
+  #s6.active .s6-hud   { animation: fadeIn 0.5s 0.6s forwards; }
+
+  /* ─── REPLAY BUTTON ─── */
+  #replay-btn {
+    position: absolute; bottom: 60px; left: 160px;
+    background: transparent; border: 1px solid rgba(255,255,255,0.25); color: #F5F0EB;
+    font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 500; letter-spacing: 0.25em;
+    text-transform: uppercase; padding: 14px 38px; cursor: pointer; opacity: 0; pointer-events: none;
+    transition: opacity 0.4s, border-color 0.25s, color 0.25s; z-index: 850;
+  }
+  #replay-btn:hover { border-color: #C9A84C; color: #C9A84C; }
+  #replay-btn.visible { opacity: 1; pointer-events: auto; }
+
+  /* Dynamic reversal of replay metrics when background is inverted lookbook */
+  body.inverted-hud #replay-btn { border-color: rgba(0,0,0,0.25); color: #161514; }
+  body.inverted-hud #replay-btn:hover { border-color: #161514; }
+
+  /* ─── ANIMATION KEYFRAMES ─── */
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeUpTrack {
+    0%   { opacity: 0; transform: translateY(24px); letter-spacing: -0.05em; }
+    12%  { opacity: 1; transform: translateY(0); }
+    100% { opacity: 1; transform: translateY(0); letter-spacing: -0.01em; }
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes flashIn {
+    0%   { opacity: 0; transform: translateY(12px) scale(0.97); }
+    70%  { opacity: 1; transform: translateY(-2px) scale(1.01); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes valFlash { 0% { color: #ffffff; filter: brightness(2); } 100% { color: #2ECC71; filter: brightness(1); } }
+</style>
+</head>
+<body>
+
+<div id="stage-wrapper">
+<div id="stage">
+
+  <div class="grain-overlay"></div>
+
+  <div id="hud-tr">
+    <span id="hud-elapsed">00:00</span><span class="hud-dim"> / 00:30</span>
+  </div>
+
+  <div id="progress-track"><div id="progress-fill"></div></div>
+
+  <div class="scene active" id="s1">
+    <div class="s1-eyebrow">RULE № 01 &nbsp;·&nbsp; ACCOUNTABILITY</div>
+    <div class="s1-line1">No crying in</div>
+    <div class="s1-line2">the <span class="s1-accent">casino.</span></div>
+    <div class="s1-rule"></div>
+    <div class="s1-sub">You could have stopped&nbsp;&nbsp;before the bet.</div>
+  </div>
+
+  <div class="scene" id="s2">
+    <div class="s2-label">UNIVERSAL LAW</div>
+    <div class="s2-line">The universe can</div>
+    <div class="s2-line">fulfill your <span class="s2-gold">need.</span></div>
+    <div class="s2-divider"></div>
+    <div class="s2-line2">But not your <span class="s2-gold">greed.</span></div>
+    <div class="s2-footnote">∴ &nbsp; calibrate the ask</div>
+  </div>
+
+  <div class="scene" id="s3">
+    <div class="s3-counter">SYSTEM SHIFT &nbsp;·&nbsp; 03/06</div>
+    <div class="s3-line1">The house always wins<span class="s3-ellipsis">…</span></div>
+    <div class="s3-pivot">
+      <span class="s3-until">Until you find the</span>
+      <span class="s3-edge">edge.</span>
+    </div>
+    <div class="s3-bar"></div>
+  </div>
+
+  <div class="scene" id="s4">
+    <div class="s4-left">
+      <div class="s4-tag">PURE ALPHA &nbsp;·&nbsp; EXPLOIT</div>
+      <div class="s4-headline">Do <span class="s4-arb glitch-text">arbitrage</span></div>
+      <div class="s4-hl2">betting.</div>
+      <div class="s4-sub">Bet on events<br>that already occurred.</div>
+    </div>
+    <div class="s4-right">
+      <div class="ticker-header">LIVE ARB FEED &nbsp;·&nbsp; DELAYED DATA</div>
+      <div class="ticker-grid" id="ticker-grid">
+        <div class="ticker-row" id="row-t0">
+          <span class="t-market">MKT_A/FEED_01</span>
+          <span class="t-status status-live">LIVE</span>
+          <span class="t-val" id="t0">+4.43%</span>
+        </div>
+        <div class="ticker-row" id="row-t1">
+          <span class="t-market">MKT_B/FEED_07</span>
+          <span class="t-status status-delay">DELAY</span>
+          <span class="t-val" id="t1">+4.93%</span>
+         </div>
+        <div class="ticker-row" id="row-t2">
+          <span class="t-market">MKT_C/FEED_03</span>
+          <span class="t-status status-arb">ARB</span>
+          <span class="t-val" id="t2">+4.77%</span>
+        </div>
+        <div class="ticker-row" id="row-t3">
+          <span class="t-market">MKT_D/FEED_12</span>
+          <span class="t-status status-live">LIVE</span>
+          <span class="t-val" id="t3">+6.00%</span>
+        </div>
+        <div class="ticker-row" id="row-t4">
+          <span class="t-market">MKT_E/FEED_05</span>
+          <span class="t-status status-delay">DELAY</span>
+          <span class="t-val" id="t4">+5.28%</span>
+        </div>
+        <div class="ticker-row" id="row-t5">
+          <span class="t-market">MKT_F/FEED_09</span>
+          <span class="t-status status-arb">ARB</span>
+          <span class="t-val" id="t5">+5.15%</span>
+        </div>
+        <div class="ticker-row" id="row-t6">
+          <span class="t-market">MKT_G/FEED_14</span>
+          <span class="t-status status-live">LIVE</span>
+          <span class="t-val" id="t6">+4.00%</span>
+        </div>
+      </div>
+      <div class="ticker-total">
+        <span class="tt-label">NET EDGE</span>
+        <span class="tt-val" id="tt-total">+34.56%</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="scene" id="s5">
+    <div class="s5-eq-label">THE EQUATION &nbsp;·&nbsp; COLD LOGIC</div>
+    <div class="s5-rule-top"></div>
+    <div class="s5-content-stack">
+      <div class="s5-txt-line l-1">You will get</div>
+      <div class="s5-txt-line l-2">exactly what</div>
+      <div class="s5-txt-line l-3">you did.</div>
+    </div>
+    <div class="s5-rule-bot"></div>
+    <div class="s5-sub">zero luck &nbsp;·&nbsp; pure calculation</div>
+  </div>
+
+  <div class="scene" id="s6">
+    <div class="s6-line1">Master <span class="s6-glitch">the glitch.</span></div>
+    <div class="s6-line2">Extract the <span class="s6-yield">yield.</span></div>
+    <div class="s6-hash">EXTRACTOR_CORE_ACTIVE</div>
+
+    <div class="s6-hud">
+      <div class="hud-terminal-header">
+        <span>ASYMMETRIC CORE LOG</span>
+        <div class="hud-terminal-status"></div>
+      </div>
+      <div class="hud-log-box" id="log-box"></div>
+    </div>
+  </div>
+
+  <button id="replay-btn" onclick="startVideo()">↺ &nbsp; REPLAY</button>
+
+</div>
+</div>
+
+<script>
+// ─── STAGE RESPONSIVENESS SCALE ────────────────────────────────
+function scaleStage() {
+  const wrapper = document.getElementById('stage-wrapper');
+  const stage   = document.getElementById('stage');
+  const scale = Math.min(wrapper.clientWidth / 1920, wrapper.clientHeight / 1080);
+  stage.style.transform = `scale(${scale})`;
+  stage.style.left = ((wrapper.clientWidth - 1920 * scale) / 2) + 'px';
+  stage.style.top  = ((wrapper.clientHeight - 1080 * scale) / 2) + 'px';
+}
+window.addEventListener('resize', scaleStage);
+scaleStage();
+
+// ─── SCENE REGULATION TIMELINE CONFIG ──────────────────────────
+const TOTAL = 30000;
+const SCENES = [
+  { id: 's1', start: 0,     end: 5000  },
+  { id: 's2', start: 5000,  end: 10000 },
+  { id: 's3', start: 10000, end: 15000 },
+  { id: 's4', start: 15000, end: 20000 },
+  { id: 's5', start: 20000, end: 25000 },
+  { id: 's6', start: 25000, end: 30000 },
+];
+
+let startTime = null;
+let rafId = null;
+let activeScene = null;
+let tickerInterval = null;
+
+// ─── TICKER DATA SCOPE & ISOLATED BACKLIGHT FLASH ──────────────
+const TICKER_IDS = ['t0','t1','t2','t3','t4','t5','t6'];
+const BASE_VALS  = [4.43, 4.93, 4.77, 6.00, 5.28, 5.15, 4.00];
+
+function jitter(base) {
+  const v = base + (Math.random() - 0.5) * 0.35;
+  return Math.max(3.8, Math.min(6.2, v));
+}
+
+function updateTicker() {
+  let total = 0;
+  const flashTargetIndex = Math.floor(Math.random() * TICKER_IDS.length);
+
+  TICKER_IDS.forEach((id, i) => {
+    const el = document.getElementById(id);
+    const rowEl = document.getElementById('row-' + id);
+    if (!el) return;
+    
+    const v = jitter(BASE_VALS[i]);
+    BASE_VALS[i] = v;
+    el.textContent = '+' + v.toFixed(2) + '%';
+    
+    el.classList.remove('t-flash');
+    void el.offsetWidth;
+    el.classList.add('t-flash');
+
+    if (i === flashTargetIndex && rowEl) {
+      rowEl.classList.add('row-active-flash');
+      setTimeout(() => rowEl.classList.remove('row-active-flash'), 150);
+    }
+
+    total += v;
+  });
+  const tot = document.getElementById('tt-total');
+  if (tot) tot.textContent = '+' + total.toFixed(2) + '%';
+}
+
+// ─── CHROMATIC GLITCH JITTER PIPELINE ─────────────────────────
+function applyChromaGlitch() {
+  if (activeScene === 's4') {
+    if (Math.random() > 0.85) { 
+      document.documentElement.style.setProperty('--chroma-x', `${(Math.random() - 0.5) * 8}px`);
+      document.documentElement.style.setProperty('--chroma-y', `${(Math.random() - 0.5) * 4}px`);
+    } else {
+      document.documentElement.style.setProperty('--chroma-x', '0px');
+      document.documentElement.style.setProperty('--chroma-y', '0px');
+    }
+  }
+}
+
+// ─── REAL-TIME OUTRO LOG RUNNER ────────────────────────────────
+function runOutroLogs(elapsed) {
+  const logBox = document.getElementById('log-box');
+  if (!logBox) return;
+  
+  let html = '';
+  if (elapsed >= 25000) {
+    html += `<div class="hud-log-line"><span class="hl-ts">[25.2]</span> <span class="hl-tag">SYS:</span> <span class="hl-txt">Scraping hooks...</span></div>`;
+  }
+  if (elapsed >= 26200) {
+    html += `<div class="hud-log-line"><span class="hl-ts">[26.1]</span> <span class="hl-tag">STK_API:</span> <span class="hl-txt">Delay found (82ms)</span></div>`;
+  }
+  if (elapsed >= 27400) {
+    html += `<div class="hud-log-line"><span class="hl-ts">[27.3]</span> <span class="hl-tag">POLY_API:</span> <span class="hl-txt">Disparity structuralized</span></div>`;
+  }
+  if (elapsed >= 28600) {
+    html += `<div class="hud-log-line"><span class="hl-ts">[28.7]</span> <span class="hl-tag">DEC_LN:</span> <span class="hl-success">EXPLOIT_SECURED ✓</span></div>`;
+  }
+  logBox.innerHTML = html;
+}
+
+// ─── FRAME TICK PIPELINE ───────────────────────────────────────
+function tick(ts) {
+  if (!startTime) startTime = ts;
+  const elapsed = ts - startTime;
+  const clampedE = Math.min(elapsed, TOTAL);
+
+  document.getElementById('progress-fill').style.width = (clampedE / TOTAL * 100) + '%';
+  const secs = Math.floor(clampedE / 1000);
+  document.getElementById('hud-elapsed').textContent =
+    '0' + Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0');
+
+  if (elapsed >= 25000) runOutroLogs(elapsed);
+  applyChromaGlitch();
+
+  let targetScene = null;
+  for (const s of SCENES) {
+    if (elapsed >= s.start && elapsed < s.end) { targetScene = s.id; break; }
+  }
+
+  if (targetScene && targetScene !== activeScene) {
+    if (activeScene) {
+      const prev = document.getElementById(activeScene);
+      if (prev) {
+        prev.classList.remove('active');
+        prev.querySelectorAll('[class]').forEach(el => {
+          el.style.animation = 'none';
+          void el.offsetWidth;
+          el.style.animation = '';
+        });
+      }
+    }
+    const next = document.getElementById(targetScene);
+    if (next) next.classList.add('active');
+    
+    // Toggle layout color modes dynamically on metrics frame wrapper
+    if (targetScene === 's5') {
+      document.body.classList.add('inverted-hud');
+    } else {
+      document.body.classList.remove('inverted-hud');
+    }
+    
+    activeScene = targetScene;
+
+    if (targetScene === 's4') {
+      if (tickerInterval) clearInterval(tickerInterval);
+      tickerInterval = setInterval(updateTicker, 160);
+    } else {
+      if (tickerInterval) { clearInterval(tickerInterval); tickerInterval = null; }
+    }
+  }
+
+  if (elapsed >= TOTAL) {
+    document.getElementById('replay-btn').classList.add('visible');
+    document.documentElement.style.setProperty('--chroma-x', '0px');
+    document.documentElement.style.setProperty('--chroma-y', '0px');
+    return;
+  }
+
+  rafId = requestAnimationFrame(tick);
+}
+
+// ─── STATE RESET EXECUTIVE ─────────────────────────────────────
+function startVideo() {
+  document.body.classList.remove('inverted-hud');
+  SCENES.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (!el) return;
+    el.classList.remove('active');
+    el.querySelectorAll('[class]').forEach(child => {
+      child.style.animation = 'none';
+      void child.offsetWidth;
+      child.style.animation = '';
+    });
+  });
+  document.getElementById('progress-fill').style.width = '0%';
+  document.getElementById('hud-elapsed').textContent = '00:00';
+  document.getElementById('replay-btn').classList.remove('visible');
+  
+  const logBox = document.getElementById('log-box');
+  if (logBox) logBox.innerHTML = '';
+
+  if (tickerInterval) { clearInterval(tickerInterval); tickerInterval = null; }
+  if (rafId) cancelAnimationFrame(rafId);
+  activeScene = null;
+  startTime = null;
+  rafId = requestAnimationFrame(tick);
+}
+
+window.addEventListener('load', () => { setTimeout(startVideo, 200); });
+</script>
+</body>
+</html>
